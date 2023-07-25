@@ -39,8 +39,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   Future<void> startListening() async {
     FocusScope.of(context).unfocus();
-    await speechToText.listen(
-        onResult: onSpeechToTextResult, pauseFor: const Duration(seconds: 5));
+    await speechToText.listen(onResult: onSpeechToTextResult);
     setState(() {});
   }
 
@@ -57,6 +56,11 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
 
   Future<void> systemSpeak(String content) async {
     await flutterTts.speak(content);
+  }
+
+  makeRequest() async {
+    generatedContent = await openAiService.chatGPTApi(textSpeech);
+    setState(() {});
   }
 
   @override
@@ -87,21 +91,10 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             padding: const EdgeInsets.all(12),
             child: FloatingActionButton(
               onPressed: () async {
-                if (await speechToText.hasPermission &&
-                    speechToText.isNotListening) {
+                if (speechToText.isNotListening) {
                   await startListening();
                 } else if (speechToText.isListening) {
-                  final speech = await openAiService.isArtPromptApi(textSpeech);
-                  if (speech.contains("https")) {
-                    generatedImgUrl = speech;
-                    generatedContent = null;
-                    setState(() {});
-                  } else {
-                    generatedImgUrl = null;
-                    generatedContent = speech;
-                    setState(() {});
-                    await systemSpeak(speech);
-                  }
+                  makeRequest();
                   await stopListening();
                 } else {
                   initSpeechToText();
@@ -121,7 +114,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
             child: const Text("Pal"),
           ),
           centerTitle: true,
-          // leading: const Icon(Icons.menu_rounded),
+          leading: const Icon(Icons.menu_rounded),
         ),
         body: SingleChildScrollView(
           child: Column(
@@ -164,27 +157,43 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   ),
                 ),
               ),
-              if (generatedImgUrl != null)
-                Padding(
-                  padding: const EdgeInsets.all(10.0),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(
-                      20,
+              //user bubble
+              FadeInRight(
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 10),
+                    margin: const EdgeInsets.symmetric(horizontal: 40)
+                        .copyWith(top: 10),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Pallete.borderColor),
+                      borderRadius: BorderRadius.circular(20).copyWith(
+                        topRight: Radius.zero,
+                      ),
                     ),
-                    child: Image.network(
-                      generatedImgUrl!,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 10.0),
+                      child: Text(
+                        textSpeech,
+                        style: TextStyle(
+                          color: Pallete.mainFontColor,
+                          fontSize: generatedContent == null ? 25 : 18,
+                        ),
+                      ),
                     ),
                   ),
                 ),
+              ),
               SlideInLeft(
                 child: Visibility(
-                  visible: generatedContent == null && generatedImgUrl == null,
+                  visible: generatedContent == null,
                   child: Container(
                     padding: const EdgeInsets.all(10),
                     alignment: Alignment.centerLeft,
                     margin: const EdgeInsets.only(top: 10, left: 22),
                     child: const Text(
-                      "Here are a few feature",
+                      "Here are a few features",
                       style: TextStyle(
                           color: Pallete.mainFontColor,
                           fontSize: 20,
@@ -195,7 +204,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
               ),
               //features list
               Visibility(
-                visible: generatedContent == null && generatedImgUrl == null,
+                visible: generatedContent == null,
                 child: Column(
                   children: [
                     FadeInLeft(
@@ -228,12 +237,6 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
                   ],
                 ),
               ),
-              // Expanded(
-              //   child: Text(
-              //     textSpeech,
-              //     textAlign: TextAlign.center,
-              //   ),
-              // ),
             ],
           ),
         ),
