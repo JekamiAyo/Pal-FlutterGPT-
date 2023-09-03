@@ -59,7 +59,7 @@ class _HomePageState extends State<HomePage> with TickerProviderStateMixin {
   }
 
   makeRequest() async {
-    generatedContent = await openAiService.chatGPTApi(textSpeech);
+    generatedContent = await openAiService.chatGPTApi();
     setState(() {});
   }
 
